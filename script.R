@@ -9,6 +9,7 @@ library(caTools)
 
 set.seed(123)
 
+#♥Commentaire pour push
 train$spl = sample.split(train[,1], SplitRatio = 0.7)
 training = train[train$spl==1,]
 validation = train[train$spl==0,]
