@@ -15,4 +15,6 @@ training = train[train$spl==1,]
 validation = train[train$spl==0,]
 
 library(e1071)
-svm.model <- svm(training)
+svm.model <- svm(training[,-1],training[,1], probability = T)
+valid.pred <- predict(svm.model, validation[,-1])
+valid.compar <- matrix(c(validation[,1], valid.pred), byrow = F, ncol = 2)
