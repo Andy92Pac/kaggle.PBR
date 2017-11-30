@@ -42,6 +42,13 @@ validation <- subset(validation, select = -c(spl))
 
 PCA(training[,-1])
 
+#
+fitControl <- trainControl(
+method = "cv",
+number = 5,
+savePredictions = 'final',
+classProbs = T)
+
 #Construction du modèle de prediction : Random Forest ----------------------------------------------------
 
 #cette méthode vise à corriger les inconvénients de la méthode arbres de décisions
@@ -58,11 +65,21 @@ rf.modelProba <- randomForest(x = training[,predictorNames], y = as.factor(train
 #Pour ce rendre compte de la marge d'erreur et comprendre pk il y a des fois des 
 #proba élévé pour la classe 0 
 
-rf.model <- randomForest(as.factor(training[,outcomeName])~.
-                         ,data= training[,predictorNames]
-                        ,keep.forest=TRUE #Utile qd on utilise predict avec rf
-)
+rf.model <- randomForest(y = as.factor(training[,outcomeName])
+                         ,x = training[,predictorNames]
+                        ,keep.forest = T,
+                        do.trace = T)
 
+#Methode du knn ------------------------------------------------------------------------
+training[,outcomeName]
+training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
+library(class)
+biological.knn <-train(training[,predictorNames],training[,outcomeName],method='knn',trControl=fitControl,tuneLength=3)
+biological.knn
+
+#Methode glm
+glm.model<-train(training[,predictorNames],training[,outcomeName],method='glm',trControl=fitControl,tuneLength=3)
+glm.model
 #RF sur validation-------------------------------------------------------------
 
 #RF proba
@@ -74,6 +91,23 @@ valid.comparRF <-matrix(c(validation[,1], valid.predProbaRF[,2]), byrow = F, nco
 predict <- predict(rf.model,validation[,predictorNames])
 actuel <- validation[,outcomeName]
 matrix.confusion <- table(predict,actuel)
+matrix.confusion
+
+#Knn sur validation-------------------------------------------------------
+
+#Knn proba
+valid.predknn <- predict(biological.knn,validation[,predictorNames],type = "prob")
+valid.predknn
+
+#Knn matrix confusion
+predict.knn <- predict(biological.knn,validation[,predictorNames])
+actuel <- validation[,outcomeName]
+matrix.confusion_knn <- table(predict,actuel)
+matrix.confusion_knn
+
+#glm sur validation-------------------------------------------------------
+valid.predglm <- predict(glm.model,validation[,predictorNames],type = "prob")
+valid.predglm
 
 
 #RF sur données TEST-------------------------------------------------------
