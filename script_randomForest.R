@@ -67,9 +67,8 @@ rf.model <- randomForest(as.factor(training[,outcomeName])~.
 
 #RF proba
 valid.predProbaRF <- predict(rf.modelProba,validation[,predictorNames],type = "prob")
-valid.predProbaRF <- attr(valid.predProbaRF,"class")
 valid.predProbaRF <- as.data.frame(valid.predProbaRF)
-valid.comparRF <- matrix(c(validation[,1], valid.predProbaRF[,2]), byrow = F, ncol = 2)
+valid.comparRF <-matrix(c(validation[,1], valid.predProbaRF[,2]), byrow = F, ncol = 2)
 
 #RF confusion matrix
 predict <- predict(rf.model,validation[,predictorNames])
