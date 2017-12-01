@@ -41,19 +41,23 @@ validation <- subset(validation, select = -c(spl))
 #Analyse factorielle----------------------------------------------------------
 PCA(training[,-1])
 
+training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
 
 #Construction du modèle de prediction SVM--------------------------------------
-svm.model <- svm(as.factor(training[,outcomeName])~. , data = training[,predictorNames],type="C-classification",probability = TRUE)
+svm.model <- svm(training[,outcomeName]~. , data = training[,predictorNames],type="C-classification",probability = TRUE)
+
 summary(svm.model)
 
 #SVM sur validation---------------------------------------------------------
 valid.pred <- predict(svm.model, validation[,predictorNames],probability = TRUE)
 valid.pred <- attr(valid.pred,"probabilities")
 valid.compar <- matrix(c(validation[,1], valid.pred[,1]), byrow = F, ncol = 2)
+valid.compar
 
 #SVM sur données TEST------------------------------------------------------
 test.pred <- predict(svm.model, test[,predictorNames], probability = TRUE)
 test.pred <- attr(test.pred,"probabilities")
-test.compar <- matrix(test.pred[,1:2], byrow = F, ncol = 2)
-colnames(test.compar)=c("Classe 1","Classe 0")
-test.compar
+test.compar <- matrix(test.pred[,1], byrow = F, ncol = 1)
+colnames(test.compar)=c("PredictedProbability")
+res <- cbind('MoleculeId'=1:length(test.compar), test.compar)
+write.csv(res, file="submission.csv" , row.names = F)
