@@ -1,6 +1,7 @@
 setwd('/Volumes/MacintoshHD/Users/Andy/Desktop/Kaggle')
 
 #Chargement des librairies
+library(FactoMineR)
 library(caret)
 library(caTools)
 library(e1071)
@@ -8,25 +9,22 @@ library(e1071)
 #Chargement des données
 test <- read.csv('data/test.csv')
 train.data <- read.csv('data/train.csv')
-
+train.data
 #Présentation des données
-str(train)
-head(train)
-dim(train)
-summary(train)
+str(train.data)
+head(train.data)
+dim(train.data)
+summary(train.data)
 
+outcomeName <- names(train.data)[1]
+predictorNames <- setdiff(names(train.data), outcomeName)
 
 #Lavage des données
 x <- train.data[,predictorNames]
 remove.cols <- nearZeroVar(x, names = T)
 
 all.cols <- names(train.data)
-train.reduc <- train.data[,setdiff(all.cols, remove.cols)]
-
-train <- train.reduc
-
-outcomeName <- names(train)[1]
-predictorNames <- setdiff(names(train), outcomeName)
+train <- train.data[,setdiff(all.cols, remove.cols)]
 
 #Splitage des données
 train$spl = sample.split(train[,1], SplitRatio = 0.7)
@@ -36,9 +34,12 @@ validation = train[train$spl==0,]
 training <- subset(training, select = -c(spl))
 validation <- subset(validation, select = -c(spl))
 
+outcomeName <- names(training)[1]
+predictorNames <- setdiff(names(training), outcomeName)
+
 
 #Analyse factorielle
-PCA(training[,-1])
+PCA(training[,predictorNames])
 
 
 

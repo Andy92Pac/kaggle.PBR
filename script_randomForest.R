@@ -44,8 +44,9 @@ PCA(training[,-1])
 
 #
 fitControl <- trainControl(
-method = "cv",
-number = 5,
+method = "repeatedcv",
+number = 3,
+repeats = 1,
 savePredictions = 'final',
 classProbs = T)
 
@@ -67,26 +68,30 @@ rf.modelProba <- randomForest(x = training[,predictorNames], y = as.factor(train
 
 rf.model <- randomForest(y = as.factor(training[,outcomeName])
                          ,x = training[,predictorNames]
-                        ,keep.forest = T,
-                        do.trace = T)
+                        ,keep.forest = T)
+
+
+#Rf en mode train() avec le package caret permet d'avoir l'accuracy du modele 
+biological.rf <-train(training[,predictorNames],training[,outcomeName],method="rf",trControl=fitControl,tuneLength=3,verbose = FALSE)
+
 
 #Methode du knn ------------------------------------------------------------------------
 training[,outcomeName]
 training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
 library(class)
 biological.knn <-train(training[,predictorNames],training[,outcomeName],method='knn',trControl=fitControl,tuneLength=3)
-biological.knn
+biological.rf
 
 #Methode glm
-glm.model<-train(training[,predictorNames],training[,outcomeName],method='glm',trControl=fitControl,tuneLength=3)
+glm.model<-train(training[,predictorNames],training[,outcomeName],method='glm',trControl=fitControl,tuneLength=1)
 glm.model
 #RF sur validation-------------------------------------------------------------
 
 #RF proba
-valid.predProbaRF <- predict(rf.modelProba,validation[,predictorNames],type = "prob")
-valid.predProbaRF <- as.data.frame(valid.predProbaRF)
+valid.predProbaRF <- predict(biological.rf,validation[,predictorNames],type = "prob")
+valid.predProbaRF
 valid.comparRF <-matrix(c(validation[,1], valid.predProbaRF[,2]), byrow = F, ncol = 2)
-
+valid.comparRF
 #RF confusion matrix
 predict <- predict(rf.model,validation[,predictorNames])
 actuel <- validation[,outcomeName]
@@ -110,10 +115,10 @@ valid.predglm <- predict(glm.model,validation[,predictorNames],type = "prob")
 valid.predglm
 
 
-#RF sur données TEST-------------------------------------------------------
-
-#RF proba
-test.predProbaRF <- predict(rf.modelProba, test[,predictorNames], type="prob")
-test.predProbaRF <- as.data.frame(test.predProbaRF)
-test.compar <- matrix(test.predProbaRF[,2], byrow = F, ncol = 1)
-colnames(test.compar)=c("Classe 1")
+#RF en mode train sur données TEST------------------------------------------------------
+test.pred <- predict(biological.rf, test[,predictorNames], type = "prob")
+test.compar <- matrix(test.pred[,2], byrow = F, ncol = 1)
+colnames(test.compar)=c("PredictedProbability")
+res <- cbind('MoleculeId'=1:length(test.compar), test.compar)
+res
+write.csv(res, file="submissionrfcaret.csv" , row.names = F)
