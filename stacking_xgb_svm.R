@@ -82,7 +82,7 @@ pred.svm <- attr(pred.svm, "probabilities")
 
 
 #Ensemble
-pred.ens <- (pred.xgb+pred.svm[1])/2
+pred.ens <- (pred.xgb+pred.svm[,1])/2
 
 #Submission
 submission <- cbind('MoleculeId'=1:length(pred.ens), "PredictedProbability"=pred.ens)
