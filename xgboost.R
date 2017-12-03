@@ -32,8 +32,8 @@ outcomeName <- names(train)[1]
 predictorNames <- setdiff(names(train), outcomeName)
 
 #Splitage des données----------------------------------------------------------
-
-train$spl = sample.split(train[,1], SplitRatio = 0.7)
+set.seed(1234)
+train$spl = sample.split(train[,1], SplitRatio = 0.85)
 training = train[train$spl==1,]
 validation = train[train$spl==0,]
 
@@ -80,4 +80,4 @@ test.mat <- data.matrix(test)
 predictions <- predict(xgb.model, test.mat)
 predictions
 res <- cbind('MoleculeId'=1:length(predictions), "PredictedProbability"=predictions)
-write.csv(res, file="submissionXGBoostReduit.csv" , row.names = F)
+write.csv(res, file="submissionXGBoostNew.csv" , row.names = F)
