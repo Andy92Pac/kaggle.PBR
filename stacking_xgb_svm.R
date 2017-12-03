@@ -25,6 +25,7 @@ validation <- subset(validation, select = -c(spl))
 training <- data.matrix(training)
 validation <- data.matrix(validation)
 
+
 training.Dmat <- xgb.DMatrix(training[,predictorNames], label=training[,outcomeName])
 valid.Dmat <- xgb.DMatrix(validation[,predictorNames], label=validation[,outcomeName])
 
@@ -79,11 +80,11 @@ svm.model <- svm(training[,outcomeName]~. , data = training[,predictorNames],typ
 
 pred.svm <- predict(svm.model, test, probability = TRUE)
 pred.svm <- attr(pred.svm, "probabilities")
-
+pred.svm
 
 #Ensemble
 pred.ens <- (pred.xgb+pred.svm[1])/2
-
+pred.ens
 #Submission
 submission <- cbind('MoleculeId'=1:length(pred.ens), "PredictedProbability"=pred.ens)
 write.csv(submission, file="submissionEnsembleSVM_XGB.csv" , row.names = F)
