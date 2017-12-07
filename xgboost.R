@@ -56,15 +56,16 @@ cv.data <- xgb.train(data = training.Dmat
                      ,eval_metric = "logloss"
                      ,objective = "binary:logistic")
 
-plot(cv.data$evaluation_log$train_logloss, type = 'l')
-lines(cv.data$evaluation_log$valid_logloss)
-segments(min.logloss.index, 0, y1 = min.logloss)
-
 min.logloss <- min(cv.data$evaluation_log$valid_logloss)
 min.logloss
 
 min.logloss.index <- which.min(cv.data$evaluation_log$valid_logloss)
 min.logloss.index
+
+plot(cv.data$evaluation_log$train_logloss, type = 'l', col="blue", lwd = 2)
+lines(cv.data$evaluation_log$valid_logloss, col = 'red', lwd = 2)
+segments(min.logloss.index, 0, y1 = min.logloss, lty = 'dotted')
+segments(0, min.logloss, min.logloss.index, min.logloss, lty='dotted')
 
 opti.nrounds = min.logloss.index
 
