@@ -82,8 +82,10 @@ pred.svm <- attr(pred.svm, "probabilities")
 
 
 #Ensemble
-pred.ens <- (pred.xgb+pred.svm[,1])/2
+w.xgb = 3
+w.svm = 2
+pred.ens <- (pred.xgb*w.xgb+pred.svm[,1]*w.svm)/(w.xgb+w.svm)
 
 #Submission
 submission <- cbind('MoleculeId'=1:length(pred.ens), "PredictedProbability"=pred.ens)
-write.csv(submission, file="submissionEnsembleSVM_XGB.csv" , row.names = F)
+write.csv(submission, file="submissionEnsembleSVM2_XGB3.csv" , row.names = F)
