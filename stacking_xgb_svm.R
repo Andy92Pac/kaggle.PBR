@@ -58,20 +58,23 @@ pred.xgb <- predict(xgb.model, as.matrix(test))
 #SVM
 remove.cols <- nearZeroVar(train.data[,-1], names = T)
 
-all.cols <- names(train.data)
-train.reduc <- train.data[,setdiff(all.cols, remove.cols)]
+all.cols.tr <- names(train.data)
+train.reduc <- train.data[,setdiff(all.cols.tr, remove.cols)]
 
 train <- train.reduc
 
 outcomeName <- names(train)[1]
 predictorNames <- setdiff(names(train), outcomeName)
 
-train$spl = sample.split(train[,1], SplitRatio = 0.85)
-training = train[train$spl==1,]
-validation = train[train$spl==0,]
+#train$spl = sample.split(train[,1], SplitRatio = 0.85)
+#training = train[train$spl==1,]
+#validation = train[train$spl==0,]
 
-training <- subset(training, select = -c(spl))
-validation <- subset(validation, select = -c(spl))
+#training <- subset(training, select = -c(spl))
+#validation <- subset(validation, select = -c(spl))
+
+#Pas de split
+training <- train
 
 training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
 
@@ -82,10 +85,10 @@ pred.svm <- attr(pred.svm, "probabilities")
 
 
 #Ensemble
-w.xgb = 3
-w.svm = 2
+w.xgb = 5
+w.svm = 3
 pred.ens <- (pred.xgb*w.xgb+pred.svm[,1]*w.svm)/(w.xgb+w.svm)
 
 #Submission
 submission <- cbind('MoleculeId'=1:length(pred.ens), "PredictedProbability"=pred.ens)
-write.csv(submission, file="submissionEnsembleSVM2_XGB3.csv" , row.names = F)
+write.csv(submission, file="submissionEnsembleSVM3_XGB5_FullTrainSVM.csv" , row.names = F)
