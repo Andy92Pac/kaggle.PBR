@@ -1,0 +1,49 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+stitle: Rapport
+---
+Chargement des librairies utile à ce projet
+
+```{r LibraryCheck, message=FALSE, warning=FALSE}
+library(caret)
+library(caTools)
+library(FactoMineR)
+library(xgboost)
+library(e1071)
+library(randomForest)
+```
+
+##Introduction
+
+Aujourd’hui, les volumes de données récoltées sont de plus en plus grands et ces quantités ne font qu’augmenter. Cela a pour conséquence de permettre de réaliser de nombreuses analyses sur ces données et d’en tirer de multiples informations, jusqu’à pouvoir prédire avec une certaine confiance des événements. 
+
+De nombreux projets pivotent autour de cette problématique de prédictions d'événements. Des sociétés en viennent même à soumettre des projets sous forme de compétition sur des sites tels que Kaggle.
+
+Nous avons réalisé un de ces projets qui a été soumis par la société Boehringer Ingelheim. Ce projet consiste à prédire à quelle classe biologique appartiendrait une molécule en fonction de ses propriétés chimiques.
+Nous avons pour cela le langage R, très adapté aux études statistiques et aux problèmes de Data Science.
+
+Ce rapport a pour but d’expliquer en plusieurs axes notre démarche dans la construction d’un modèle de prédiction répondant à ce problème.
+
+Pour ce fait nous allons en premier lieu présenter les données; la méthodologie utilisée , les différents modèles que nous avons abordés et celui qu’on a retenu ; les résultats obtenus et enfin une conclusion.
+
+De plus nous rendront le code disponible en annexe.
+
+```{r}
+
+```
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
