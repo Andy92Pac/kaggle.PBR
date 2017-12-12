@@ -149,6 +149,15 @@ XGboost est un algorithme de boosting qui s’appuie sur ce principe, avec un pa
 
 Des variantes permettent de l’étendre à la classification multiclasses. Adaboost s’appuie sur des classifieurs existants et cherche à leur affecter les bons poids vis à vis de leurs performances.
 
+Après les premiers résultats encourageants obtenus avec les premieres méthodes utilisées, nous avons décidé d'utiliser le boosting afin de voir si cela nous permettait d'obtenir de meilleurs résultats.
+Le package xgboost qui met à disposition des méthodes de ce type a donc été choisi pour cela.
+Nous avons dans un premier temps appliqué l'algorithme sur notre jeu de données de training en choisissant comme mesure d'erreur le LogLoss.
+
+```{r}
+
+```
+
+La fonction nous retourne à chaque itération la nouvelle valeur de l'erreur calculée. Comme nous pouvons le constater, cette erreur diminue au fur et à mesure des itérations. Le problème est qu'une fois 
 
 > Stacking
 
