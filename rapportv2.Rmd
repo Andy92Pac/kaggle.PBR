@@ -1,0 +1,207 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+stitle: Rapport
+---
+## Plan
+
+1. Introduction
+2. Présentation des données
+3. Méthodologie
+4. Modèles
+    + Simples
+    + Ensembles de modèles
+        + Boosting
+        + Stacking
+5. Evaluation
+6. Conclusion
+7. Annexes
+
+***
+
+> MetaData
+
+Chargement des librairies utile à ce projet
+
+```{r LibraryCheck, message=FALSE, warning=FALSE}
+library(caret) #Selection de variable NearZeroVar()
+library(caTools)
+library(FactoMineR) #ACP
+library(xgboost) #Xgboost
+library(e1071) #Set seed()
+```
+
+***
+
+> Introduction
+
+Aujourd’hui, les volumes de données récoltées sont de plus en plus grands et ces quantités ne font qu’augmenter. Cela a pour conséquence de permettre de réaliser de nombreuses analyses sur ces données et d’en tirer de multiples informations, jusqu’à pouvoir prédire avec une certaine confiance des événements. 
+
+De nombreux projets pivotent autour de cette problématique de prédictions d'événements. Des sociétés en viennent même à soumettre des projets sous forme de compétition sur des sites tels que Kaggle.
+
+Nous avons réalisé un de ces projets qui a été soumis par la société Boehringer Ingelheim. Ce projet consiste à prédire à quelle classe biologique appartiendrait une molécule en fonction de ses propriétés chimiques.
+Nous avons pour cela le langage R, très adapté aux études statistiques et aux problèmes de Data Science.
+
+Ce rapport a pour but d’expliquer en plusieurs axes notre démarche dans la construction d’un modèle de prédiction répondant à ce problème.
+
+Pour ce fait nous allons en premier lieu présenter les données; la méthodologie utilisée , les différents modèles que nous avons abordés et celui qu’on a retenu ; les résultats obtenus et enfin une conclusion.
+
+De plus nous rendront le code disponible en annexe.
+
+***
+
+> Présentation des données
+
+Dans ce genre de problème, la maîtrise des données utilisées est souvent fondamentale.
+Nous allons donc dans un premier temps étudier ces dernières afin d’orienter correctement la suite de notre travail. 
+Le jeu de données fourni est un fichier au format csv. Nous chargeons donc ce dernier via la commande read.csv.
+
+```{r}
+train.data <- read.csv('data/train.csv')
+```
+
+Une fois les données accessibles dans notre environnement de travail, nous appliquons plusieurs commandes nous permettant d’en apprendre plus sur celles-ci.
+Nous avons donc à notre disposition un dataset composé de 3751 individus décrits chacun par un total de 1777 variables.
+
+```{r}
+dim(train.data)
+```
+
+Les individus sont ici des molécules. Parmi les 1777 variables décrivant chaque molécule, la première, nommée “Activity” correspond à la réponse biologique de celle ci. Les 1776 autres variables donnent elles des informations concernant les propriétés chimiques des molécules.
+
+```{r}
+head(train.data[,1:10],n = 6)
+```
+
+Ces variables sont toutes de type numérique. De plus, on constate rapidement que la totalité d’entre elles prennent valeur dans l’intervalle [0,1]. Les données sont donc normalisées. Certaines de ces variables sont de type binaire et ne prennent donc comme valeur que 0 et 1. D’autres sont elles de type quantitatif discrète. Enfin, on constate également la présence de variables quantitatives continues.
+
+```{r}
+str(train.data[,1:10])
+```
+
+***
+
+> Methodologie
+
+Après la première phase consistant à en apprendre plus sur les données utilisées, nous pouvons passer à l’étape suivante.
+Nous savons désormais que le jeu de données contient 1776 variables explicatives. Le nombre étant relativement élevé, on peut imaginer que l’ensemble de celles-ci n’ont pas la même importance dans l’obtention du résultat de la réaction biologique de la molécule.
+
+Il apparaît donc utile de réduire le nombre de dimensions si certaines d’entre elles ne sont pas pertinentes dans la création de notre modèle prédictif. Cependant, il n’est pas certain que les méthodes de réduction de dimensions améliorent nos modèles. Nous réaliserons donc à chaque fois un modèle sur les données réduite mais également sur le dataset entier afin de vérifier si cette réduction améliore les prédictions ou non.
+
+L’évaluation du modèle prédictif est l’une des étapes les plus importantes. Il existe de nombreuses métriques permettant cette évaluation et les résultats retournés différents selon le choix réalisé. Il est donc primordial de choisir un mesure d’évaluation adaptée au problème que l’on tente de résoudre. Dans notre cas, la métrique utilisée pour évaluer la qualité des prédictions soumise sur Kaggle est le log-loss.
+
+Nous utiliserons donc cette métrique afin d’évaluer la qualité de nos modèles sur les données du dataset de validation
+
+```{r echo=TRUE}
+LogLossBinary = function(actual, predicted, eps = 1e-15) {  
+  predicted = pmin(pmax(predicted, eps), 1-eps)  
+  - (sum(actual * log(predicted) + (1 - actual) * log(1 - predicted))) / length(actual)
+}
+```
+
+La méthodologie utilisée concernant la création de nos modèles prédictifs est détaillée dans la suite de ce document.
+
+***
+
+> Modèles simples
+
+SVM : explication rapide de ce que c'est + explication des paramètres
+
+```{r eval=FALSE}
+svm.model <- svm(training[,outcomeName]~. ,
+                 data = training[,predictorNames],
+                 type="C-classification",
+                 probability = TRUE
+                 )
+```
+
+Random Forest : explication rapide de ce que c'est + explication des paramètres
+
+```{r eval=FALSE}
+rf.modelProba <- randomForest(x = training[,predictorNames],
+                              y = training[,outcomeName],
+                              ytest = training[,outcomeName],
+                              xtest = training[,predictorNames]
+                              ,keep.forest=TRUE #Utile qd on utilise predict avec rf
+)
+```
+
+Grid Search : explication rapide de ce que c'est + explication des paramètres
+
+
+
+***
+
+> Ensemble de modèle
+
+Lorsqu’il faut prendre une décision importante, il vaut souvent mieux recueillir plusieurs avis que de se fier à un seul. Utiliser un modèle de machine learning pour prédire un comportement ou un prix, c’est un premier pas. 
+
+Mais agréger des milliers de modèles ayant des avis divergents mais pouvant être chacun spécialisés sur des parties de la data donne le plus souvent de meilleurs résultats. Nous parlons alors de méthodes ensemblistes, dont les plus connues sont le bagging, boosting et stacking.
+ 
+Nous allons aborder ici deux de ces méthodes le boosting et le stacking.
+
+> Boosting
+
+Le principe du boosting est quelque peu différent du bagging. Les différents classifieurs sont pondérés de manière à ce qu’à chaque prédiction, les classifieurs ayant prédit correctement auront un poids plus fort que ceux dont la prédiction est incorrecte.
+ 
+XGboost est un algorithme de boosting qui s’appuie sur ce principe, avec un paramètre de mise à jour adaptatif permettant de donner plus d’importance aux valeurs difficiles à prédire, donc en boostant les classifieurs qui réussissent quand d’autres ont échoué. 
+
+Des variantes permettent de l’étendre à la classification multiclasses. Adaboost s’appuie sur des classifieurs existants et cherche à leur affecter les bons poids vis à vis de leurs performances.
+
+
+> Stacking
+
+Le stacking (ou dit parfois blending) est un procédé qui consiste à appliquer un algorithme de machine learning à des classifieur générés par un autre algorithme de machine learning.
+ 
+D’une certaine façon, il s’agit de prédire quels sont les meilleurs classifieurs et de les pondérer. Cette démarche a l’avantage de pouvoir agréger des modèles très différents et d’améliorer sensiblement la qualité de la prédiction finale, le challenge NetFlix à 1 million $ en est la meilleure preuve.
+Pour pouvoir évaluer les différents modèles à stacker, on utilise des poids constants permettant de pondérer les différents modèles. C’est du stacking linéaire standard.
+ 
+La principale limitation est qu’on a perdu la dépendance des modèles à leur data et plus particulièrement leur spécialisation. On va donc utiliser des poids variables qui dépendent des données ; soit des méta-features. Le stacking est cette fois-ci dépendant du poids des features.
+
+Svm Model : 
+
+```{r eval=FALSE}
+svm.model <- svm(training[,outcomeName]~. ,
+                 data = training[,predictorNames],
+                 type="C-classification",
+                 probability = TRUE
+                 )
+
+pred.svm <- predict(svm.model, test, probability = TRUE)
+```
+
+XGB Model : 
+
+```{r eval=FALSE}
+xgb.model <- xgb.train(data = training.Dmat
+                       ,nrounds = opti.nrounds
+                       ,eta = 0.2
+                       ,max_depth = 6
+                       ,eval_metric = "logloss"
+                       ,objective = "binary:logistic")
+
+pred.xgb <- predict(xgb.model, as.matrix(test))
+```
+
+Attribution des poids et Ensembling : 
+
+```{r eval=FALSE}
+w.xgb = 5
+w.svm = 3
+pred.ens <- (pred.xgb*w.xgb+pred.svm[,1]*w.svm)/(w.xgb+w.svm)
+```
+
+***
+
+> Evaluation
+
+Résulats obtenues de notre meilleure modèle
+
+
+***
+
+> Conclusion
+
+conclusion
+
