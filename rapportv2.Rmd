@@ -100,6 +100,23 @@ LogLossBinary = function(actual, predicted, eps = 1e-15) {
 }
 ```
 
+PARLER DE LA SEPARATION EN TRAINING ET VALIDATION
+
+```{r echo=TRUE}
+train <- train.data
+
+outcomeName <- names(train)[1]
+predictorNames <- setdiff(names(train), outcomeName)
+
+set.seed(12345)
+train$spl = sample.split(train[,1], SplitRatio = 0.85)
+training = train[train$spl==1,]
+validation = train[train$spl==0,]
+
+training <- subset(training, select = -c(spl))
+validation <- subset(validation, select = -c(spl))
+```
+
 La méthodologie utilisée concernant la création de nos modèles prédictifs est détaillée dans la suite de ce document.
 
 ***
@@ -154,10 +171,56 @@ Le package xgboost qui met à disposition des méthodes de ce type a donc été 
 Nous avons dans un premier temps appliqué l'algorithme sur notre jeu de données de training en choisissant comme mesure d'erreur le LogLoss.
 
 ```{r}
+training <- data.matrix(training)
+
+xgb.model <- xgboost(data = training[,predictorNames], label = training[,outcomeName], nrounds = 2)
+```
+
+La fonction nous retourne à chaque itération la nouvelle valeur de l'erreur calculée. Comme nous pouvons le constater, cette erreur diminue au fur et à mesure des itérations. Le problème est qu'une fois un certain seuil passé, notre algorithme fait du surapprentissage. Le modèle apprend donc "par coeur" les données utilisées et n'est plus capable de généraliser le problème qu'il essaye de prédire. 
+
+Afin de palier à cela, il faudrait pouvoir suivre l'évolution du taux d'erreur lorsque le modèle est appliqué sur des données qui ne sont pas utilisées pour sa génération. En effet, lorsque le modèle commencera à faire du surapprentissage, on constatera que l'erreur calculée sur les prédictions des données de validation ne descendra plus mais augmentera.
+Nous avons donc utilisé, cette pratique, appelée la validation croisée (cross validation).
+
+```{r, R.options=list(max.print=10)}
+validation <- data.matrix(validation)
+
+training.Dmat <- xgb.DMatrix(training[,predictorNames], label=training[,outcomeName])
+valid.Dmat <- xgb.DMatrix(validation[,predictorNames], label=validation[,outcomeName])
+
+watchlist <- list(train = training.Dmat, valid =  valid.Dmat)
+
+cv.data <- xgb.train(data = training.Dmat
+                     ,nrounds = 100
+                     ,eta = 0.2
+                     ,max_depth = 6
+                     ,watchlist = watchlist
+                     ,eval_metric = "logloss"
+                     ,objective = "binary:logistic")
 
 ```
 
-La fonction nous retourne à chaque itération la nouvelle valeur de l'erreur calculée. Comme nous pouvons le constater, cette erreur diminue au fur et à mesure des itérations. Le problème est qu'une fois 
+```{r, echo=FALSE}
+head(cv.data$evaluation_log)
+tail(cv.data$evaluation_log)
+```
+
+Il ne nous reste donc plus qu'à identifier à quel moment le taux d'erreur des données de validation est-il minimiser pour obtenir le nombre d'itération permettant d'optimiser le plus possible notre modèle sans tomber toutefois dans le surapprentissage.
+
+```{r}
+min.logloss <- min(cv.data$evaluation_log$valid_logloss)
+min.logloss
+
+min.logloss.index <- which.min(cv.data$evaluation_log$valid_logloss)
+min.logloss.index
+```
+
+```{r, echo=FALSE}
+plot(cv.data$evaluation_log$train_logloss, type = 'l', col="blue", lwd = 2)
+lines(cv.data$evaluation_log$valid_logloss, col = 'red', lwd = 2)
+segments(min.logloss.index, 0, y1 = min.logloss, lty = 'dotted')
+segments(0, min.logloss, min.logloss.index, min.logloss, lty='dotted')
+```
+
 
 > Stacking
 
