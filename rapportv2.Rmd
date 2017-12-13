@@ -29,7 +29,7 @@ library(caret) #Selection de variable NearZeroVar()
 library(caTools)
 library(FactoMineR) #ACP
 library(xgboost) #Xgboost
-library(e1071) #Set seed()
+library(e1071) #SVM
 ```
 
 ***
@@ -58,6 +58,7 @@ Nous allons donc dans un premier temps étudier ces dernières afin d’orienter
 Le jeu de données fourni est un fichier au format csv. Nous chargeons donc ce dernier via la commande read.csv.
 
 ```{r}
+#Chargement du csv train.csv
 train.data <- read.csv('data/train.csv')
 ```
 
@@ -65,18 +66,21 @@ Une fois les données accessibles dans notre environnement de travail, nous appl
 Nous avons donc à notre disposition un dataset composé de 3751 individus décrits chacun par un total de 1777 variables.
 
 ```{r}
+#Nombres de variables et d'individus
 dim(train.data)
 ```
 
 Les individus sont ici des molécules. Parmi les 1777 variables décrivant chaque molécule, la première, nommée “Activity” correspond à la réponse biologique de celle ci. Les 1776 autres variables donnent elles des informations concernant les propriétés chimiques des molécules.
 
 ```{r}
+#6 premières observations sur les 10 premières variables
 head(train.data[,1:10],n = 6)
 ```
 
 Ces variables sont toutes de type numérique. De plus, on constate rapidement que la totalité d’entre elles prennent valeur dans l’intervalle [0,1]. Les données sont donc normalisées. Certaines de ces variables sont de type binaire et ne prennent donc comme valeur que 0 et 1. D’autres sont elles de type quantitatif discrète. Enfin, on constate également la présence de variables quantitatives continues.
 
 ```{r}
+#Description du type des 10 premières variables
 str(train.data[,1:10])
 ```
 
@@ -94,28 +98,73 @@ L’évaluation du modèle prédictif est l’une des étapes les plus important
 Nous utiliserons donc cette métrique afin d’évaluer la qualité de nos modèles sur les données du dataset de validation
 
 ```{r echo=TRUE}
+#Fonction de calcul du logloss
 LogLossBinary = function(actual, predicted, eps = 1e-15) {  
   predicted = pmin(pmax(predicted, eps), 1-eps)  
   - (sum(actual * log(predicted) + (1 - actual) * log(1 - predicted))) / length(actual)
 }
 ```
 
-PARLER DE LA SEPARATION EN TRAINING ET VALIDATION
+#####__Sélection de variables__
+
+Sélection de varibale grâce la fonction nearZeroVar() du package caret qui permet d'eliminer les variable avec une information peu pertinente du fait que leurs variances tend vers 0 
+
+```{r}
+#Supression des variable dont la variance est ègale à 0 ou tend vers 0
+remove.cols <- nearZeroVar(train.data[,-1], names = T)
+
+#Ensemble des colonnes du jeu de données Train.csv
+all.cols <- names(train.data)
+
+#Ensemble de données - données supprimé = nouveau jeu de données de 799 variables 
+#Soit une réduction de 978 variables
+train.reduc <- train.data[,setdiff(all.cols, remove.cols)]
+
+#Pour la suite du code on met les informations de train.reduc dans train
+train <- train.reduc
+
+```
+
+#####__Spliting de données__
+
+Une fois la sélection faite , on split notre jeu de données en 2 parties : 
+ - Training qui contiens 85% des données provenant de train
+ - Validation qui contiens 15% des données provenant de train
+ 
+On se basera sur le jeu de données training pour créer et entrainer notre modèle 
+et nous valideront notre modèle sur le jeu de données validation
 
 ```{r echo=TRUE}
-train <- train.data
 
+#Variable expliquée : Activity
 outcomeName <- names(train)[1]
+
+#Variable explicatives Ensemble du jeu de données de 799 - Activity
 predictorNames <- setdiff(names(train), outcomeName)
 
+#Spliting de notre jeu de données en trainning et validation
 set.seed(12345)
 train$spl = sample.split(train[,1], SplitRatio = 0.85)
 training = train[train$spl==1,]
 validation = train[train$spl==0,]
 
+#On retire aux jeu de données training et validation les variables spl
 training <- subset(training, select = -c(spl))
 validation <- subset(validation, select = -c(spl))
+
 ```
+
+Conversion du type integer en factor() pour que les modèles simple puissent traiter le problème en classification de deux classes.
+
+```{r}
+#Conversion integer vers factor()
+training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
+```
+
+
+#####__*REM:*__
+
+*les méthodes de selection de variables ainsi que le fait de convertir en factor() notre variable à prédire sont utilisé pour optimiserles méthodes simples SVM et Random Forest.*
 
 La méthodologie utilisée concernant la création de nos modèles prédictifs est détaillée dans la suite de ce document.
 
@@ -126,22 +175,28 @@ La méthodologie utilisée concernant la création de nos modèles prédictifs e
 SVM : explication rapide de ce que c'est + explication des paramètres
 
 ```{r eval=FALSE}
-svm.model <- svm(training[,outcomeName]~. ,
+svm.model <- svm(training[,outcomeName]~. , #Formule Activity en fonction de toutes les autres variables de training
                  data = training[,predictorNames],
-                 type="C-classification",
-                 probability = TRUE
+                 type="C-classification", #Classe 0 et 1
+                 probability = TRUE  #Pour avoir des probabilités 
                  )
 ```
 
-Random Forest : explication rapide de ce que c'est + explication des paramètres
+Random Forest : 
+
+Le principe est d'utiliser un grand nombre d'arbres de décision construits chacun avec un sous-échantillon différent de l'ensemble d'apprentissage, et pour chaque construction d'arbre, la décision à un noeud est fait en fonction d'un sous-ensemble de variables tirées au hasard.
+
+puis, on utilise l'ensemble des arbres de décision produits pour faire la prédiction, avec un vote à la majorité (pour de la classification, variable prédite de type facteur), ou une moyenne (pour de la régression, variable prédite de type numérique).
 
 ```{r eval=FALSE}
-rf.modelProba <- randomForest(x = training[,predictorNames],
-                              y = training[,outcomeName],
-                              ytest = training[,outcomeName],
-                              xtest = training[,predictorNames]
-                              ,keep.forest=TRUE #Utile qd on utilise predict avec rf
-)
+#Construction du modèle Random Forest
+rf.modelProba <- randomForest(x = training[,predictorNames], #Variables explicative
+                              y = training[,outcomeName], #Variable expliquée
+                              ntree = 100, #Nombres d'arbres donc d'itérations
+                              do.trace = TRUE) #Identique à verbose pour avoir plus d'information sur l'éxecution
+
+#Prediction du random forest sur validation
+valid.predProbaRF <- predict(rf.modelProba,validation[,predictorNames],type = "prob")
 ```
 
 Grid Search : explication rapide de ce que c'est + explication des paramètres
@@ -171,8 +226,10 @@ Le package xgboost qui met à disposition des méthodes de ce type a donc été 
 Nous avons dans un premier temps appliqué l'algorithme sur notre jeu de données de training en choisissant comme mesure d'erreur le LogLoss.
 
 ```{r}
+#Données training mis dans une matrix pour le traitement xgb
 training <- data.matrix(training)
 
+#Création du modèle xgboost sans optimisation
 xgb.model <- xgboost(data = training[,predictorNames], label = training[,outcomeName], nrounds = 2)
 ```
 
@@ -182,13 +239,17 @@ Afin de palier à cela, il faudrait pouvoir suivre l'évolution du taux d'erreur
 Nous avons donc utilisé, cette pratique, appelée la validation croisée (cross validation).
 
 ```{r, R.options=list(max.print=10)}
+#Données validation mis dans une matrix pour le traitement xgb
 validation <- data.matrix(validation)
 
+#Création des matrix xgb
 training.Dmat <- xgb.DMatrix(training[,predictorNames], label=training[,outcomeName])
 valid.Dmat <- xgb.DMatrix(validation[,predictorNames], label=validation[,outcomeName])
 
+#Utilisation des matrix crée dans la watchlist qui va nous permettre de créer un modele pour chaque matrix donnée en paramètres
 watchlist <- list(train = training.Dmat, valid =  valid.Dmat)
 
+#Construction du modèle xgb
 cv.data <- xgb.train(data = training.Dmat
                      ,nrounds = 100
                      ,eta = 0.2
@@ -207,9 +268,11 @@ tail(cv.data$evaluation_log)
 Il ne nous reste donc plus qu'à identifier à quel moment le taux d'erreur des données de validation est-il minimiser pour obtenir le nombre d'itération permettant d'optimiser le plus possible notre modèle sans tomber toutefois dans le surapprentissage.
 
 ```{r}
+#Récuperation du logloss le moins élevé de validation
 min.logloss <- min(cv.data$evaluation_log$valid_logloss)
 min.logloss
 
+#Récuperation du nombre de fois qu'il à du tourner pour avoir le logloss optimisé
 min.logloss.index <- which.min(cv.data$evaluation_log$valid_logloss)
 min.logloss.index
 ```
@@ -234,6 +297,7 @@ La principale limitation est qu’on a perdu la dépendance des modèles à leur
 Svm Model : 
 
 ```{r eval=FALSE}
+#Creation du modèle SVM
 svm.model <- svm(training[,outcomeName]~. ,
                  data = training[,predictorNames],
                  type="C-classification",
