@@ -131,8 +131,10 @@ Une fois la sélection faite , on split notre jeu de données en 2 parties :
  - Training qui contiens 85% des données provenant de train
  - Validation qui contiens 15% des données provenant de train
  
+Il est important à cette étape de séparer notre jeu de données de manière à avoir deux datasets conservant le maximum l'information initiale contenue dans le dataset complet.
+ 
 On se basera sur le jeu de données training pour créer et entrainer notre modèle 
-et nous valideront notre modèle sur le jeu de données validation
+et nous valideront notre modèle sur le jeu de données validation.
 
 ```{r echo=TRUE}
 
@@ -199,9 +201,6 @@ rf.modelProba <- randomForest(x = training[,predictorNames], #Variables explicat
 valid.predProbaRF <- predict(rf.modelProba,validation[,predictorNames],type = "prob")
 ```
 
-Grid Search : explication rapide de ce que c'est + explication des paramètres
-
-
 
 ***
 
@@ -265,7 +264,7 @@ head(cv.data$evaluation_log)
 tail(cv.data$evaluation_log)
 ```
 
-Il ne nous reste donc plus qu'à identifier à quel moment le taux d'erreur des données de validation est-il minimiser pour obtenir le nombre d'itération permettant d'optimiser le plus possible notre modèle sans tomber toutefois dans le surapprentissage.
+Il ne nous reste donc plus qu'à identifier à quel moment le taux d'erreur des données de validation est-il minimisé pour obtenir le nombre d'itération permettant d'optimiser le plus possible notre modèle sans tomber toutefois dans le surapprentissage.
 
 ```{r}
 #Récuperation du logloss le moins élevé de validation
@@ -277,12 +276,65 @@ min.logloss.index <- which.min(cv.data$evaluation_log$valid_logloss)
 min.logloss.index
 ```
 
+Ce graphique permet de constater visuellement le nombre d'itération à partir duquel le surapprentissage survient et on constate en effet qu'à partir d'un certain moment le taux d'erreur du dataset de validation ne diminue plus mais au contraire augmente.
+
 ```{r, echo=FALSE}
 plot(cv.data$evaluation_log$train_logloss, type = 'l', col="blue", lwd = 2)
 lines(cv.data$evaluation_log$valid_logloss, col = 'red', lwd = 2)
 segments(min.logloss.index, 0, y1 = min.logloss, lty = 'dotted')
 segments(0, min.logloss, min.logloss.index, min.logloss, lty='dotted')
 ```
+
+Nous avons ensuite voulu améliorer notre modèle en jouant avec les hyperparamètres de l'algorithme. Après avoir tenté d'ajuster ces derniers à la main, nous avons fait le choix d'utiliser une approche plus rigoureuse en utlisant un grid search afin d'identifier les hyperparamètres optimaux pour notre modèle. Nous avons donc choisi 4 paramètres que nous avons jugé succeptible d'améliorer notre modèle :
+- eta
+- gamma
+- max_depth
+- max_delta_step
+
+```{r}
+gs <- list(eta = c(0.1,0.3,0.5)
+           ,gamma = c(0, 0.1, 0.5)
+           ,max_depth = c(3, 6, 10)
+           ,max_delta_step = c(0, 2)
+)
+gs.df <- expand.grid(gs)
+gs.df <- cbind(gs.df, 1:nrow(gs.df))
+```
+
+Une fois que nous avons fini de constituer notre matrice contenant les différentes valeurs choisies pour les hyperparamètres, nous appliquons l'algorithme sur chacune des lignes de cette dernière.
+
+```{r}
+res.gs <- apply(gs.df, 1, function(row) {
+  cv.data <- 0
+  cv.data <- xgb.train(data = training.Dmat
+                       ,nrounds = 100
+                       ,eta = row[1]
+                       ,gamma = row[2]
+                       ,max_depth = row[3]
+                       ,max_delta_step = row[4]
+                       ,watchlist = watchlist
+                       ,eval_metric = "logloss"
+                       ,objective = "binary:logistic")
+  min.val <- min(cv.data$evaluation_log$valid_logloss)
+  min.index <- which.min(cv.data$evaluation_log$valid_logloss)
+  c(min.val, min.index)
+})
+
+res.gs.t <- t(res.gs)
+gs.df <- cbind(min.val = gs.df, min.index = res.gs.t)
+```
+
+Les valeurs minimales obtenues pour chaque combinaison d'hyperparamètres sont ajoutées à la matrice initiale et il ne nous reste donc plus qu'à chercher la ligne pour laquelle cette valeur est la plus faible pour savoir quelle combinaison est optimale.
+
+```{r}
+min.logloss.gs <- min(gs.df$min.val)
+min.logloss.gs
+min.logloss.gs.index <- which.min(gs.df$min.val)
+min.logloss.gs.index
+min.logloss.gs.nrounds <- gs.df$min.index[10]
+min.logloss.gs.nrounds
+```
+
 
 
 > Stacking
