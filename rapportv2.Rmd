@@ -259,7 +259,7 @@ training <- data.matrix(training)
 
 ```
 
-```{r, R.options=list(max.print=10)}
+```{r, R.options=list(max.print=10), results='hide'}
 #Données validation mis dans une matrix pour le traitement xgb
 validation <- data.matrix(validation)
 
