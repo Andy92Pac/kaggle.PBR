@@ -411,7 +411,14 @@ pred.ens <- (pred.xgb*w.xgb+pred.svm[,1]*w.svm)/(w.xgb+w.svm)
 
 > Evaluation
 
-Résulats obtenues de notre meilleure modèle
+Nous pouvons désormais procéder à l'évaluation de nos modèles et comparer les résultats obtenus.
+
+```{r}
+df = data.frame(Modele = c('SVM', 'RF'), LogLoss.validation = c(1,2), LogLoss.kaggle = c(2,3))
+df
+```
+
+Le meilleur des modèles utilise deux méthodes d'ensembling, le boosting avec l'algorithme xgboost et le stacking en associant ce premier modèle à un modèle créé avec la méthode svm. En effet, l'association de ces deux modèles nous permet d'améliorer les résultats de manière significative.
 
 
 ***
