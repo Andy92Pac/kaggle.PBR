@@ -174,7 +174,7 @@ La méthodologie utilisée concernant la création de nos modèles prédictifs e
 
 > Modèles simples
 
-SVM : explication rapide de ce que c'est + explication des paramètres
+SVM (Support Machine Vectors) est une méthode de classification binaire. Le principe est de rechercher une règle de décision basée sur une séparation par hyperplan de marge optimale entre 2 classes.
 
 ```{r eval=FALSE}
 svm.model <- svm(training[,outcomeName]~. , #Formule Activity en fonction de toutes les autres variables de training
@@ -361,21 +361,22 @@ min.logloss.gs.nrounds
 
 > Stacking
 
-Le stacking (ou dit parfois blending) est un procédé qui consiste à appliquer un algorithme de machine learning à des classifieur générés par un autre algorithme de machine learning.
+Le stacking (ou dit parfois blending) est un procédé qui consiste à utiliser deux ou plusieurs classifiers de récupérer leurs sorties pour l'appliquer à un ou des autres classifieurs. Tout cela dans le but d'avoir une meilleure précision donc un modèle plus performant. 
  
-D’une certaine façon, il s’agit de prédire quels sont les meilleurs classifieurs et de les pondérer. Cette démarche a l’avantage de pouvoir agréger des modèles très différents et d’améliorer sensiblement la qualité de la prédiction finale, le challenge NetFlix à 1 million $ en est la meilleure preuve.
+D’une certaine façon, il s’agit de prédire quels sont les meilleurs classifieurs et de les pondérer. Cette démarche a l’avantage de pouvoir agréger des modèles très différents et d’améliorer sensiblement la qualité de la prédiction finale, le challenge NetFlix à 1 million $ en est la meilleure preuve.(Méthode d'ensembling stacking utilisée)
+
 Pour pouvoir évaluer les différents modèles à stacker, on utilise des poids constants permettant de pondérer les différents modèles. C’est du stacking linéaire standard.
  
 La principale limitation est qu’on a perdu la dépendance des modèles à leur data et plus particulièrement leur spécialisation. On va donc utiliser des poids variables qui dépendent des données ; soit des méta-features. Le stacking est cette fois-ci dépendant du poids des features.
 
 Svm Model : 
 
-```{r echo=FALSE, results='hide',message=FALSE}
+```{r echo=TRUE, results='hide',message=FALSE,eval=FALSE}
 #Conversion integer vers factor()
 training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
 ```
 
-```{r eval=FALSE}
+```{r echo=TRUE, results='hide',message=FALSE,eval=FALSE}
 #Creation du modèle SVM
 svm.model <- svm(training[,outcomeName]~. ,
                  data = training[,predictorNames],
@@ -383,12 +384,14 @@ svm.model <- svm(training[,outcomeName]~. ,
                  probability = TRUE
                  )
 
+#Prédiction réalisée sur l'ensemble du jeu de données Test
 pred.svm <- predict(svm.model, test, probability = TRUE)
 ```
 
 XGB Model : 
 
-```{r eval=FALSE}
+```{r echo=TRUE, results='hide',message=FALSE,eval=FALSE}
+#Construction du modèle Xgboost
 xgb.model <- xgb.train(data = training.Dmat
                        ,nrounds = opti.nrounds
                        ,eta = 0.2
@@ -396,14 +399,20 @@ xgb.model <- xgb.train(data = training.Dmat
                        ,eval_metric = "logloss"
                        ,objective = "binary:logistic")
 
+#Prédiction réalisée sur l'ensemble du jeu de données Test
 pred.xgb <- predict(xgb.model, as.matrix(test))
 ```
 
-Attribution des poids et Ensembling : 
+Attribution des poids et Ensembling : Nous n'avons pas appliqué de fonction nous permettant de trouver un poids optimal nous y sommes allé au tatonement et nous avons remarqué pour ces poids utilisés nous obtennons les meilleures résultats de prédiction
 
 ```{r eval=FALSE}
+#Poids attribué à la prédiction de xgboost
 w.xgb = 5
+
+#Poids attribué à la prédiction de SVM
 w.svm = 3
+
+#Calcul de l'ensemble des 2 prédictions
 pred.ens <- (pred.xgb*w.xgb+pred.svm[,1]*w.svm)/(w.xgb+w.svm)
 ```
 
