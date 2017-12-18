@@ -158,7 +158,7 @@ validation <- subset(validation, select = -c(spl))
 
 Conversion du type integer en factor() pour que les modèles simple puissent traiter le problème en classification de deux classes.
 
-```{r}
+```{r echo=FALSE, results='hide',message=FALSE}
 #Conversion integer vers factor()
 training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
 ```
@@ -237,6 +237,28 @@ La fonction nous retourne à chaque itération la nouvelle valeur de l'erreur ca
 Afin de palier à cela, il faudrait pouvoir suivre l'évolution du taux d'erreur lorsque le modèle est appliqué sur des données qui ne sont pas utilisées pour sa génération. En effet, lorsque le modèle commencera à faire du surapprentissage, on constatera que l'erreur calculée sur les prédictions des données de validation ne descendra plus mais augmentera.
 Nous avons donc utilisé, cette pratique, appelée la validation croisée (cross validation).
 
+```{r echo=FALSE}
+train <- train.data
+#Variable expliquée : Activity
+outcomeName <- names(train)[1]
+
+#Variable explicatives Ensemble du jeu de données de 799 - Activity
+predictorNames <- setdiff(names(train), outcomeName)
+
+#Spliting de notre jeu de données en trainning et validation
+set.seed(12345)
+train$spl = sample.split(train[,1], SplitRatio = 0.85)
+training = train[train$spl==1,]
+validation = train[train$spl==0,]
+
+#On retire aux jeu de données training et validation les variables spl
+training <- subset(training, select = -c(spl))
+validation <- subset(validation, select = -c(spl))
+
+training <- data.matrix(training)
+
+```
+
 ```{r, R.options=list(max.print=10)}
 #Données validation mis dans une matrix pour le traitement xgb
 validation <- data.matrix(validation)
@@ -303,7 +325,7 @@ gs.df <- cbind(gs.df, 1:nrow(gs.df))
 
 Une fois que nous avons fini de constituer notre matrice contenant les différentes valeurs choisies pour les hyperparamètres, nous appliquons l'algorithme sur chacune des lignes de cette dernière.
 
-```{r}
+```{r eval=FALSE}
 res.gs <- apply(gs.df, 1, function(row) {
   cv.data <- 0
   cv.data <- xgb.train(data = training.Dmat
@@ -347,6 +369,11 @@ Pour pouvoir évaluer les différents modèles à stacker, on utilise des poids 
 La principale limitation est qu’on a perdu la dépendance des modèles à leur data et plus particulièrement leur spécialisation. On va donc utiliser des poids variables qui dépendent des données ; soit des méta-features. Le stacking est cette fois-ci dépendant du poids des features.
 
 Svm Model : 
+
+```{r echo=FALSE, results='hide',message=FALSE}
+#Conversion integer vers factor()
+training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
+```
 
 ```{r eval=FALSE}
 #Creation du modèle SVM
