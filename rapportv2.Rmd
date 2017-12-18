@@ -105,7 +105,7 @@ LogLossBinary = function(actual, predicted, eps = 1e-15) {
 }
 ```
 
-#####__Sélection de variables__
+######__Sélection de variables__
 
 Sélection de varibale grâce la fonction nearZeroVar() du package caret qui permet d'eliminer les variable avec une information peu pertinente du fait que leurs variances tend vers 0 
 
@@ -125,7 +125,7 @@ train <- train.reduc
 
 ```
 
-#####__Spliting de données__
+######__Spliting de données__
 
 Une fois la sélection faite , on split notre jeu de données en 2 parties : 
  - Training qui contiens 85% des données provenant de train
@@ -374,9 +374,7 @@ Svm Model :
 ```{r echo=TRUE, results='hide',message=FALSE,eval=FALSE}
 #Conversion integer vers factor()
 training[,outcomeName] <- ifelse(training[,outcomeName]==1,'yes','nope')
-```
 
-```{r echo=TRUE, results='hide',message=FALSE,eval=FALSE}
 #Creation du modèle SVM
 svm.model <- svm(training[,outcomeName]~. ,
                  data = training[,predictorNames],
@@ -434,5 +432,10 @@ Le meilleur des modèles utilise deux méthodes d'ensembling, le boosting avec l
 
 > Conclusion
 
-conclusion
+Nous avons répondu à la problématique de ce sujet qui était de construire un modèle capable de faire des prédictions sur l'appartenance d'une molécule à une classe donnée en fonction de ses propriétés chimiques.
+
+Par une méthode d'ensembling qui est le Stacking nous y avons répondu et au final avons eu les score suivants : 
+
+Score public : 0.42065 et Score privée : 0.38882
+
 
