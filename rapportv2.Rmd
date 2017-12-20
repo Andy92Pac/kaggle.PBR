@@ -436,7 +436,7 @@ pred.ens <- (pred.xgb*w.xgb+pred.svm[,1]*w.svm)/(w.xgb+w.svm)
 Nous pouvons désormais procéder à l'évaluation de nos modèles et comparer les résultats obtenus.
 
 ```{r}
-df = data.frame(Modele = c('SVM', 'XGboost', 'Stacking XGboost RandomForest','Stacking SVM XGboost', 'Stacking SVM XGboost stretched'), LogLoss.kaggle = c(0.46203,0.45047,0.42802,0.42371,0.42065))
+df = data.frame(Modele = c('SVM', 'XGboost', 'Stacking XGboost RandomForest','Stacking SVM XGboost', 'Stacking Weighted SVM XGboost','Stacking SVM XGboost stretched'), LogLoss.kaggle = c(0.46203,0.45047,0.42802,0.42371,0.42204,0.42065))
 df
 ```
 
