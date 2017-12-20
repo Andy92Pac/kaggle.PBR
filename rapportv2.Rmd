@@ -453,4 +453,7 @@ Par une méthode d'ensembling qui est le Stacking nous y avons répondu et au fi
 
 Score public : 0.42065 et Score privée : 0.38882
 
-
+Les résultats que nous sommes parvenus à obtenir nous semblent plutot satisfaisants mais nous sommes conscient qu'il est toujours possible de parfaire ces derniers. Pour cela nous avons envisager quelques pistes d'améliorations parmi lesquelles :
+    + La réduction des dimensions par une approche de régression linéaire logistique binomiale (backward, forward).
+    + L'utilisation d'un modèle prédictif au lieu de la moyenne lors de l'application du stacking sur des modèles.
+    + L'utilisation du GridSearch sur la totalité des modèles créés et pourquoi pas l'ajout d'un RandomSearch.
