@@ -84,6 +84,21 @@ Ces variables sont toutes de type numérique. De plus, on constate rapidement qu
 str(train.data[,1:10])
 ```
 
+Nous vérifions ensuite que chacune des colonnes du dataset possède au moins deux valeurs distinctes.
+
+```{r}
+#Compte le nombre de valeur uniques pour chaque colonne
+x <- apply(train.data, 2, function(z) length(unique(z)))
+#Vérification qu'aucune colonne n'a qu'une seule valeur
+x[x==1]
+```
+
+Nous nous assurons par la suite que le jeu de données ne contient pas de valeurs manquantes.
+
+```{r results='hide'}
+is.na(train.data)
+```
+
 ***
 
 > Methodologie
