@@ -88,7 +88,8 @@ pred.svm <- attr(pred.svm, "probabilities")
 w.xgb = 5
 w.svm = 3
 pred.ens <- (pred.xgb*w.xgb+pred.svm[,1]*w.svm)/(w.xgb+w.svm)
+pred.ens <- ((pred.ens) - min(pred.ens)) / (max(pred.ens) - (min(pred.ens)))
 
 #Submission
 submission <- cbind('MoleculeId'=1:length(pred.ens), "PredictedProbability"=pred.ens)
-write.csv(submission, file="submissionEnsembleSVM3_XGB5_FullTrainSVM.csv" , row.names = F)
+write.csv(submission, file="submissionEnsembleSVM3_XGB5_stretched.csv" , row.names = F)
