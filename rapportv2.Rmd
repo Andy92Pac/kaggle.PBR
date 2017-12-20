@@ -95,8 +95,9 @@ x[x==1]
 
 Nous nous assurons par la suite que le jeu de données ne contient pas de valeurs manquantes.
 
-```{r results='hide'}
-is.na(train.data)
+```{r}
+na.value <- sum(is.na(train.data))
+na.value
 ```
 
 ***
